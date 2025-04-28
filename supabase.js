@@ -1,6 +1,6 @@
 // Configura Supabase
-const supabaseUrl = 'TU_URL_SUPABASE';
-const supabaseKey = 'TU_API_KEY_PUBLICA';
+const supabaseUrl = 'https://qygjbpesxqjtvdtrimll.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5Z2picGVzeHFqdHZkdHJpbWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4NDMzNzYsImV4cCI6MjA2MTQxOTM3Nn0.5ywKggHQC_nbyEy03hUahsZ7AATPYqlFhLEv68cV-Qk';
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Elementos del DOM
