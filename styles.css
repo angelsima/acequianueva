@@ -1,0 +1,19 @@
+/* Personalización adicional a Tailwind */
+#plantas-container {
+  min-height: 60vh;
+}
+
+/* Animación para el modal */
+#modal {
+  transition: opacity 0.3s ease;
+}
+
+/* Scroll personalizado en modal */
+#modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+#modal-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
