@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Índice de Especies</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* Estilo minimalista, tonos fríos, fondo oscuro suave y texto claro */
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: sans-serif;
+      background-color: #111;
+      color: #eee;
+    }
+    h1 {
+      color: #D8A1C4; /* acento melancólico */
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin: 0.5rem 0;
+    }
+    a {
+      color: #D8A1C4;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .tipo-flora::before {
+      content: "🌿 ";
+    }
+    .tipo-fauna::before {
+      content: "🦜 ";
+    }
+    /* Pista: puedes añadir un buscador simple */
+    #searchInput {
+      padding: 0.5rem;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 1rem;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background-color: #222;
+      color: #eee;
+    }
+  </style>
+</head>
+<body>
+  <a href="detail.html" class="nav-link">Fichas</a>
+  <a href="search.html" class="nav-link">Buscar</a>
+  <h1>Índice de Especies</h1>
+  <input type="text" id="searchInput" placeholder="Filtrar por nombre...">
+  <ul id="lista-especies">
+    <!-- Se completará dinámicamente -->
+  </ul>
+
+  <script>
+    // Cargar JSON
+    fetch('especies.json')
+      .then(res => {
+        if (!res.ok) throw new Error('No se pudo cargar especies.json');
+        return res.json();
+      })
+      .then(data => {
+        const ul = document.getElementById('lista-especies');
+        const input = document.getElementById('searchInput');
+        // Orden alfabético por nombre
+        data.sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'));
+        function renderLista(filterText = '') {
+          ul.innerHTML = '';
+          const texto = filterText.trim().toLowerCase();
+          data.forEach(item => {
+            if (texto && !item.nombre.toLowerCase().includes(texto)) return;
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = `detail.html?species=${encodeURIComponent(item.slug)}`;
+            a.textContent = item.nombre;
+            a.classList.add(`tipo-${item.tipo}`);
+            li.appendChild(a);
+            ul.appendChild(li);
+          });
+          if (!ul.children.length) {
+            const li = document.createElement('li');
+            li.textContent = 'No se encontraron especies.';
+            ul.appendChild(li);
+          }
+        }
+        renderLista();
+        input.addEventListener('input', () => {
+          renderLista(input.value);
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('lista-especies').innerHTML = '<li>Error al cargar datos.</li>';
+      });
+  </script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ficha de Especie</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: sans-serif;
+      background-color: #111;
+      color: #eee;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    a.volver {
+      color: #D8A1C4;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+    a.volver:hover {
+      text-decoration: underline;
+    }
+    h1 {
+      color: #D8A1C4;
+      margin-bottom: 0.5rem;
+    }
+    .imagen-principal {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      background-color: #222;
+      margin-bottom: 1rem;
+    }
+    .campo {
+      margin-bottom: 0.75rem;
+    }
+    .campo span.label {
+      font-weight: bold;
+      display: inline-block;
+      min-width: 120px;
+      color: #D8A1C4;
+    }
+    .campo span.valor {
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <a href="javascript:history.back()" class="volver">← Inicio</a>
+  <a href="search.html" class="nav-link">Buscar</a>
+  <div id="contenido">
+    <p>Cargando ficha...</p>
+  </div>
+
+  <script>
+    // Función para leer parámetro de query string
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    const slug = getQueryParam('species');
+    const cont = document.getElementById('contenido');
+    if (!slug) {
+      cont.innerHTML = '<p>Parámetro “species” no indicado.</p>';
+    } else {
+      fetch('especies.json')
+        .then(res => {
+          if (!res.ok) throw new Error('No se pudo cargar especies.json');
+          return res.json();
+        })
+        .then(data => {
+          const item = data.find(e => e.slug === slug);
+          if (!item) {
+            cont.innerHTML = `<p>No se encontró la especie “${slug}”.</p>`;
+            return;
+          }
+          renderFicha(item);
+        })
+        .catch(err => {
+          console.error(err);
+          cont.innerHTML = '<p>Error al cargar datos.</p>';
+        });
+    }
+
+    function renderFicha(item) {
+      // Construye HTML de la ficha
+      let html = '';
+      html += `<h1>${item.nombre}</h1>`;
+      if (item.imagen) {
+        html += `<img src="${item.imagen}" alt="${item.nombre}" class="imagen-principal">`;
+      }
+      // Descripción libre
+      if (item.descripcion) {
+        html += `<div class="campo"><span class="label">Descripción:</span> <span class="valor">${item.descripcion}</span></div>`;
+      }
+      // Tipo
+      html += `<div class="campo"><span class="label">Tipo:</span> <span class="valor">${item.tipo}</span></div>`;
+      if (item.tipo === 'flora') {
+        // Adventicia
+        html += `<div class="campo"><span class="label">Adventicia:</span> <span class="valor">${item.adventicia ? 'Sí' : 'No'}</span></div>`;
+        // Color de flor
+        if (item.color_flor) {
+          html += `<div class="campo"><span class="label">Color de flor:</span> <span class="valor">${item.color_flor}</span></div>`;
+        }
+        // Meses de presencia
+        if (Array.isArray(item.meses_presencia)) {
+          const meses = item.meses_presencia.map(m => capitalize(m)).join(', ');
+          html += `<div class="campo"><span class="label">Meses de presencia:</span> <span class="valor">${meses}</span></div>`;
+        }
+      }
+      if (item.tipo === 'fauna') {
+        // Categoría
+        if (item.categoria) {
+          html += `<div class="campo"><span class="label">Categoría:</span> <span class="valor">${item.categoria}</span></div>`;
+        }
+        // Meses de nidificación
+        if (Array.isArray(item.nidifica)) {
+          const nid = item.nidifica.map(m => capitalize(m)).join(', ');
+          html += `<div class="campo"><span class="label">Meses de nidificación:</span> <span class="valor">${nid}</span></div>`;
+        }
+        // Meses de presencia
+        if (Array.isArray(item.meses_presencia)) {
+          const meses = item.meses_presencia.map(m => capitalize(m)).join(', ');
+          html += `<div class="campo"><span class="label">Meses de presencia:</span> <span class="valor">${meses}</span></div>`;
+        }
+      }
+      // Ubicación en mapa (coordenadas relativas)
+      if (item.ubicacion && typeof item.ubicacion.x !== 'undefined' && typeof item.ubicacion.y !== 'undefined') {
+        html += `<div class="campo"><span class="label">Ubicación (mapa):</span> <span class="valor">x=${item.ubicacion.x}, y=${item.ubicacion.y}</span></div>`;
+        // Más adelante se podría mostrar en el mapa real.
+      }
+      // Mostrar campos adicionales genéricos (cualquier otro campo no previsto)
+      const camposPrevistos = ['slug','nombre','imagen','descripcion','tipo','adventicia','color_flor','meses_presencia','categoria','nidifica','ubicacion'];
+      for (const key in item) {
+        if (!camposPrevistos.includes(key)) {
+          let val = item[key];
+          if (Array.isArray(val)) val = val.join(', ');
+          html += `<div class="campo"><span class="label">${capitalize(key)}:</span> <span class="valor">${val}</span></div>`;
+        }
+      }
+      cont.innerHTML = html;
+    }
+
+    function capitalize(str) {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+  </script>
+</body>
+</html>

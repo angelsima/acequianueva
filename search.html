@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Búsqueda de Especies</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: sans-serif;
+      background-color: #111;
+      color: #eee;
+    }
+    h1 {
+      color: #D8A1C4;
+    }
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 1rem;
+    }
+    .filtro-group {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-bottom: 0.25rem;
+    }
+    select, input[type="checkbox"] {
+      margin-right: 0.5rem;
+    }
+    button {
+      background-color: #D8A1C4;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #111;
+      font-weight: bold;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    #resultados {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+    .tarjeta {
+      background-color: #222;
+      padding: 0.5rem;
+      border-radius: 6px;
+      text-align: center;
+      position: relative;
+    }
+    .tarjeta img {
+      max-width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 4px;
+      background-color: #333;
+    }
+    .tarjeta a {
+      display: block;
+      margin-top: 0.5rem;
+      color: #D8A1C4;
+      text-decoration: none;
+    }
+    .tarjeta a:hover {
+      text-decoration: underline;
+    }
+    /* Agrupar controles en columas responsivas */
+  </style>
+</head>
+<body>
+    <a href="javascript:history.back()" class="volver">← Inicio</a>
+  <a href="detail.html" class="nav-link">Fichas</a>
+  <h1>Búsqueda de Especies</h1>
+  <div class="filtros" id="contenedor-filtros">
+    <!-- Se generarán dinámicamente -->
+  </div>
+  <div>
+    <button id="btn-reset">Limpiar filtros</button>
+  </div>
+  <div id="resultados">
+    <!-- Tarjetas de resultados -->
+  </div>
+
+  <script>
+    let dataGlobal = [];
+    // Valores únicos extraídos de datos
+    let mesesUnicos = [];
+    let tiposUnicos = [];
+    let coloresUnicos = [];
+    // Componentes de filtro
+    const contFiltros = document.getElementById('contenedor-filtros');
+    const resultadosDiv = document.getElementById('resultados');
+    const btnReset = document.getElementById('btn-reset');
+
+    // Al cargar datos:
+    fetch('especies.json')
+      .then(res => {
+        if (!res.ok) throw new Error('No se pudo cargar especies.json');
+        return res.json();
+      })
+      .then(data => {
+        dataGlobal = data;
+        extraerValoresUnicos();
+        construirFiltros();
+        aplicarFiltros(); // mostrar inicialmente todas
+      })
+      .catch(err => {
+        console.error(err);
+        resultadosDiv.innerHTML = '<p>Error al cargar datos.</p>';
+      });
+
+    function extraerValoresUnicos() {
+      const setMeses = new Set();
+      const setTipos = new Set();
+      const setColores = new Set();
+      dataGlobal.forEach(item => {
+        setTipos.add(item.tipo);
+        if (Array.isArray(item.meses_presencia)) {
+          item.meses_presencia.forEach(m => setMeses.add(m));
+        }
+        if (item.tipo === 'flora' && item.color_flor) {
+          setColores.add(item.color_flor.toLowerCase());
+        }
+      });
+      // Ordenar meses según orden del año
+      const ordenMeses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+      mesesUnicos = ordenMeses.filter(m => setMeses.has(m));
+      tiposUnicos = Array.from(setTipos); // e.g. ["flora", "fauna"]
+      coloresUnicos = Array.from(setColores).sort();
+    }
+
+    function construirFiltros() {
+      // Filtrar por tipo (checkbox para cada tipo)
+      const divTipo = document.createElement('div');
+      divTipo.className = 'filtro-group';
+      const labelTipo = document.createElement('label');
+      labelTipo.textContent = 'Tipo:';
+      divTipo.appendChild(labelTipo);
+      tiposUnicos.forEach(tipo => {
+        const idChk = 'chk-tipo-' + tipo;
+        const wrapper = document.createElement('div');
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.id = idChk;
+        chk.value = tipo;
+        chk.checked = false;
+        chk.addEventListener('change', aplicarFiltros);
+        const lbl = document.createElement('label');
+        lbl.htmlFor = idChk;
+        lbl.textContent = tipo;
+        wrapper.appendChild(chk);
+        wrapper.appendChild(lbl);
+        divTipo.appendChild(wrapper);
+      });
+      contFiltros.appendChild(divTipo);
+
+      // Filtrar por mes de presencia (select múltiple)
+      const divMes = document.createElement('div');
+      divMes.className = 'filtro-group';
+      const labelMes = document.createElement('label');
+      labelMes.textContent = 'Mes de presencia:';
+      divMes.appendChild(labelMes);
+      const selectMes = document.createElement('select');
+      selectMes.id = 'select-mes';
+      // Añadimos opción "cualquiera"
+      const optAny = document.createElement('option');
+      optAny.value = '';
+      optAny.textContent = 'Cualquiera';
+      selectMes.appendChild(optAny);
+      mesesUnicos.forEach(mes => {
+        const opt = document.createElement('option');
+        opt.value = mes;
+        // Capitalizar primera letra
+        opt.textContent = mes.charAt(0).toUpperCase() + mes.slice(1);
+        selectMes.appendChild(opt);
+      });
+      selectMes.addEventListener('change', aplicarFiltros);
+      divMes.appendChild(selectMes);
+      contFiltros.appendChild(divMes);
+
+      // Filtrar por color de flor (solo para flora)
+      if (coloresUnicos.length) {
+        const divColor = document.createElement('div');
+        divColor.className = 'filtro-group';
+        const labelColor = document.createElement('label');
+        labelColor.textContent = 'Color de flor (flora):';
+        divColor.appendChild(labelColor);
+        const selectColor = document.createElement('select');
+        selectColor.id = 'select-color';
+        const optAnyC = document.createElement('option');
+        optAnyC.value = '';
+        optAnyC.textContent = 'Cualquiera';
+        selectColor.appendChild(optAnyC);
+        coloresUnicos.forEach(color => {
+          const opt = document.createElement('option');
+          opt.value = color;
+          opt.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+          selectColor.appendChild(opt);
+        });
+        selectColor.addEventListener('change', aplicarFiltros);
+        divColor.appendChild(selectColor);
+        contFiltros.appendChild(divColor);
+      }
+
+      // Filtrar por adventicia (solo para flora)
+      const divAdv = document.createElement('div');
+      divAdv.className = 'filtro-group';
+      const labelAdv = document.createElement('label');
+      labelAdv.textContent = 'Adventicia (flora):';
+      divAdv.appendChild(labelAdv);
+      const chkAdv = document.createElement('input');
+      chkAdv.type = 'checkbox';
+      chkAdv.id = 'chk-adventicia';
+      chkAdv.addEventListener('change', aplicarFiltros);
+      const lblAdv = document.createElement('label');
+      lblAdv.htmlFor = 'chk-adventicia';
+      lblAdv.textContent = 'Solo adventicias';
+      divAdv.appendChild(chkAdv);
+      divAdv.appendChild(lblAdv);
+      contFiltros.appendChild(divAdv);
+
+      // Filtrar por nidificación (solo para fauna): mes de nidificación
+      const divNid = document.createElement('div');
+      divNid.className = 'filtro-group';
+      const labelNid = document.createElement('label');
+      labelNid.textContent = 'Mes nidificación (fauna):';
+      divNid.appendChild(labelNid);
+      const selectNid = document.createElement('select');
+      selectNid.id = 'select-nid';
+      const optAnyN = document.createElement('option');
+      optAnyN.value = '';
+      optAnyN.textContent = 'Cualquiera';
+      selectNid.appendChild(optAnyN);
+      mesesUnicos.forEach(mes => {
+        const opt = document.createElement('option');
+        opt.value = mes;
+        opt.textContent = mes.charAt(0).toUpperCase() + mes.slice(1);
+        selectNid.appendChild(opt);
+      });
+      selectNid.addEventListener('change', aplicarFiltros);
+      divNid.appendChild(selectNid);
+      contFiltros.appendChild(divNid);
+
+      // Buscador de texto libre (nombre)
+      const divText = document.createElement('div');
+      divText.className = 'filtro-group';
+      const labelText = document.createElement('label');
+      labelText.textContent = 'Buscar nombre:';
+      divText.appendChild(labelText);
+      const inputText = document.createElement('input');
+      inputText.type = 'text';
+      inputText.id = 'input-texto';
+      inputText.placeholder = 'Texto libre...';
+      inputText.addEventListener('input', aplicarFiltros);
+      divText.appendChild(inputText);
+      contFiltros.appendChild(divText);
+    }
+
+    function aplicarFiltros() {
+      // Recoger valores de filtros
+      // Tipos seleccionados:
+      const tiposSel = Array.from(document.querySelectorAll('input[id^="chk-tipo-"]:checked'))
+                             .map(chk => chk.value);
+      const mesPres = document.getElementById('select-mes').value; // '' o mes
+      const colorSel = document.getElementById('select-color') ? document.getElementById('select-color').value : '';
+      const advOnly = document.getElementById('chk-adventicia').checked;
+      const mesNid = document.getElementById('select-nid').value;
+      const texto = document.getElementById('input-texto').value.trim().toLowerCase();
+
+      let filtrados = dataGlobal.filter(item => {
+        // Filtrar por tipo: si hay checkbox marcados, solo esos tipos; si ninguno marcado, todos los tipos.
+        if (tiposSel.length && !tiposSel.includes(item.tipo)) return false;
+        // Filtrar por nombre texto libre
+        if (texto && !item.nombre.toLowerCase().includes(texto)) return false;
+        // Filtrar mes presencia
+        if (mesPres) {
+          if (!Array.isArray(item.meses_presencia) || !item.meses_presencia.includes(mesPres)) return false;
+        }
+        // Filtrar flora: color de flor
+        if (item.tipo === 'flora' && colorSel) {
+          if (!item.color_flor || item.color_flor.toLowerCase() !== colorSel) return false;
+        }
+        // Filtrar adventicia
+        if (item.tipo === 'flora' && advOnly) {
+          if (!item.adventicia) return false;
+        }
+        // Filtrar nidificación fauna
+        if (item.tipo === 'fauna' && mesNid) {
+          if (!Array.isArray(item.nidifica) || !item.nidifica.includes(mesNid)) return false;
+        }
+        // Nota: si es flora y se elige mesNid, no aplicamos filtro de nidificación (solo fauna).
+        // Si es fauna y se elige colorSel o adventicia, esos filtros no aplican.
+        return true;
+      });
+
+      renderizarResultados(filtrados);
+    }
+
+    function renderizarResultados(lista) {
+      resultadosDiv.innerHTML = '';
+      if (!lista.length) {
+        resultadosDiv.innerHTML = '<p>No se encontraron coincidencias.</p>';
+        return;
+      }
+      lista.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'tarjeta';
+        const img = document.createElement('img');
+        img.src = item.imagen || '';
+        img.alt = item.nombre;
+        div.appendChild(img);
+        const a = document.createElement('a');
+        a.href = `detail.html?species=${encodeURIComponent(item.slug)}`;
+        a.textContent = item.nombre;
+        div.appendChild(a);
+        resultadosDiv.appendChild(div);
+      });
+    }
+
+    btnReset.addEventListener('click', () => {
+      // Resetear todos los filtros:
+      document.querySelectorAll('input[type="checkbox"]').forEach(chk => chk.checked = false);
+      document.querySelectorAll('select').forEach(sel => sel.value = '');
+      document.getElementById('input-texto').value = '';
+      aplicarFiltros();
+    });
+  </script>
+</body>
+</html>
